@@ -242,13 +242,3 @@ export async function composeAnswer(
 
   return null;
 }
-
-export async function probe() {
-  const messages: Message[] = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: 'красное к стейку' },
-  ];
-  const strict = await callOnce(messages, 0.2, 60, true);
-  const plain = await callOnce(messages, 0.2, 60, false);
-  return { base: BASE, model: MODEL, strict, plain };
-}
