@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+﻿import { Pool } from 'pg';
 
 const url = process.env.DATABASE_URL;
 
@@ -11,7 +11,12 @@ export function hasDb(): boolean {
 export function db(): Pool {
   if (!url) throw new Error('DATABASE_URL не задан');
   if (!pool) {
-    pool = new Pool({ connectionString: url, max: 5 });
+    const isLocal = /(localhost|127\.0\.0\.1)/.test(url);
+    pool = new Pool({
+      connectionString: url,
+      max: 5,
+      ssl: isLocal ? undefined : { rejectUnauthorized: false },
+    });
   }
   return pool;
 }
