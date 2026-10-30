@@ -1,4 +1,4 @@
-import type { RankedWine } from '@/lib/catalog/types';
+﻿import type { RankedWine } from '@/lib/catalog/types';
 import type { WireMessage } from './dialog';
 import { EXTRACT_PROMPT, FEW_SHOT, SYSTEM_PROMPT } from './prompts';
 
@@ -21,7 +21,11 @@ export type LlmPrefs = {
 
 type Message = { role: 'system' | 'user' | 'assistant'; content: string };
 
-const BASE = process.env.LLM_BASE_URL ?? 'https://api.openai.com/v1';
+function baseUrl(): string {
+  const raw = (process.env.LLM_BASE_URL ?? '').trim().replace(/\/+$/, '');
+  if (!raw) return 'https://api.deepseek.com/v1';
+  return raw;
+}
 const MODEL = process.env.LLM_MODEL ?? 'gpt-4o-mini';
 
 export function llmConfigured(): boolean {
@@ -62,7 +66,7 @@ async function callOnce(
   jsonMode: boolean,
 ): Promise<{ ok: boolean; status: number; content: string | null }> {
   try {
-    const res = await fetch(`${BASE.replace(/\s+/g, "").trim()}/chat/completions`, {
+    const res = await fetch(`${baseUrl()}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey().trim()}` },
       body: JSON.stringify({
@@ -245,4 +249,20 @@ export async function composeAnswer(
   }
 
   return null;
+}
+
+export async function probe() {
+  const messages: Message[] = [
+    { role: 'system', content: 'Ответь JSON {"text":"ок"}' },
+    { role: 'user', content: 'проверка' },
+  ];
+  const strict = await callOnce(messages, 0.2, 30, true);
+  const plain = await callOnce(messages, 0.2, 30, false);
+  return {
+    base: baseUrl(),
+    model: MODEL.trim(),
+    keyTail: apiKey().slice(-4),
+    strict,
+    plain,
+  };
 }
