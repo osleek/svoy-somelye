@@ -1,22 +1,6 @@
 import type { Metadata } from 'next';
-import { Cormorant_Garamond, Inter_Tight } from 'next/font/google';
 
 import './globals.css';
-
-const display = Cormorant_Garamond({
-  subsets: ['cyrillic', 'latin'],
-  weight: ['400', '500', '600'],
-  style: ['normal', 'italic'],
-  variable: '--font-display',
-  display: 'swap',
-});
-
-const body = Inter_Tight({
-  subsets: ['cyrillic', 'latin'],
-  weight: ['300', '400', '500', '600'],
-  variable: '--font-body',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: 'Свой Сомелье — подбор российского вина',
@@ -31,7 +15,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" className={`${display.variable} ${body.variable}`}>
+    <html lang="ru">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter+Tight:wght@300;400;500;600&display=swap"
+        />
+        <meta name="theme-color" content="#fbf8f2" />
+      </head>
       <body>{children}</body>
     </html>
   );

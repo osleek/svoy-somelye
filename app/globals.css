@@ -8,8 +8,8 @@
   --color-line: #ded5c7;
   --color-accent: #3d6b58;
 
-  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-display), "Georgia", serif;
+  --font-sans: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", "Georgia", serif;
 }
 
 html,
