@@ -1,0 +1,62 @@
+﻿=== УСТАНОВКА И ЗАПУСК ===
+
+pnpm install
+pnpm build
+pnpm start
+
+http://localhost:3000
+
+
+=== ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ ===
+
+создать файл .env.local в корне проекта
+
+DATABASE_URL=postgresql://vino:vino@127.0.0.1:5433/vino
+LLM_BASE_URL=https://api.deepseek.com/v1
+LLM_MODEL=deepseek-chat
+DEEPSEEK_API_KEY=sk-...
+
+
+=== POSTGRES ЛОКАЛЬНО ===
+
+docker compose up -d
+
+пользователь vino
+пароль vino
+база vino
+порт 5433
+
+или своя база
+
+DATABASE_URL=postgresql://ПОЛЬЗОВАТЕЛЬ:ПАРОЛЬ@ХОСТ:5432/БАЗА
+
+таблицы создаются автоматически при первом запуске
+
+
+=== НЕЙРОСЕТЬ ===
+
+любой провайдер с OpenAI-совместимым API
+
+LLM_BASE_URL=https://api.deepseek.com/v1
+LLM_MODEL=deepseek-chat
+DEEPSEEK_API_KEY=sk-...
+
+OPENAI
+
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_MODEL=gpt-4o-mini
+OPENAI_API_KEY=sk-...
+
+
+=== РЕЖИМЫ ===
+
+без .env.local            подбор по правилам каталога, чат работает
+только LLM                   ответы модели, аккаунты не сохраняются
+LLM + DATABASE_URL           полный режим: диалоги, избранное, история, вкусовой профиль
+
+
+=== ПРОВЕРКА ===
+
+curl -X POST http://localhost:3000/api/chat -H "Content-Type: application/json" -d "{\"message\":\"красное к стейку\"}"
+
+в ответе source: "llm" — отвечает модель, "rule" — правила

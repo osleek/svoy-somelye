@@ -67,6 +67,21 @@ function mergePrefs(rule: Prefs, llm: Awaited<ReturnType<typeof extractPrefs>>):
     aroma: rule.aroma.length ? rule.aroma : [],
   };
   if (merged.type) merged.excludedTypes = merged.excludedTypes.filter((x) => x !== merged.type);
+
+  const catalog = getCatalog();
+  const normalizeDish = (value: string) => {
+    const needle = value.toLowerCase().trim();
+    if (!needle) return null;
+    const exact = catalog.dishes.find((dish) => dish.toLowerCase() === needle);
+    if (exact) return exact;
+    const partial = catalog.dishes.find((dish) => {
+      const label = dish.toLowerCase();
+      return label.includes(needle) || needle.includes(label);
+    });
+    return partial ?? null;
+  };
+
+  merged.dishes = [...new Set(merged.dishes.map(normalizeDish).filter((d): d is string => Boolean(d)))];
   return merged;
 }
 
