@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+﻿import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import https from 'node:https';
@@ -98,7 +98,7 @@ export async function GET(request: Request) {
         return new NextResponse(new Uint8Array(cached), {
           headers: {
             'Content-Type': 'image/webp',
-            'Cache-Control': 'public, max-age=31536000, immutable',
+            'Cache-Control': 'private, max-age=86400',
             'X-Cache': 'hit',
           },
         });
@@ -123,7 +123,7 @@ export async function GET(request: Request) {
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'image/webp',
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Cache-Control': 'private, max-age=86400',
       'X-Cache': 'miss',
     },
   });
