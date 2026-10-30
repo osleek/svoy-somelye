@@ -1,4 +1,4 @@
-import { getCatalog } from './load';
+﻿import { getCatalog } from './load';
 import { parseQuery } from './query';
 import type { TasteAxes } from '@/lib/taste';
 import { tasteFit } from '@/lib/taste';
@@ -83,8 +83,8 @@ function scoreWine(wine: Wine, c: Constraints, taste?: TasteAxes, affinity?: Aff
   }
 
   if (affinity) {
-    if (wine.type && affinity.likedTypes.includes(wine.type)) score += 1.4;
-    if (wine.grapes.some((g) => affinity.likedGrapes.includes(g))) score += 1.2;
+    if (wine.type && affinity.likedTypes.includes(wine.type)) score += 2.4;
+    if (wine.grapes.some((g) => affinity.likedGrapes.includes(g))) score += 3.2;
   }
 
   if (!reasons.length) {
