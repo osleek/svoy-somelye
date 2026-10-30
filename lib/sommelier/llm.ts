@@ -62,7 +62,6 @@ async function callOnce(
       body: JSON.stringify({
         model: MODEL.trim(),
         messages,
-        temperature,
         max_tokens: maxTokens,
         ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
       }),
