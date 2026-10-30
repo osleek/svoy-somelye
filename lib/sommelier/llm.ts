@@ -1,4 +1,4 @@
-﻿import type { RankedWine } from '@/lib/catalog/types';
+import type { RankedWine } from '@/lib/catalog/types';
 import type { WireMessage } from './dialog';
 import { EXTRACT_PROMPT, FEW_SHOT, SYSTEM_PROMPT } from './prompts';
 
@@ -95,13 +95,7 @@ async function call(messages: Message[], temperature: number, maxTokens: number)
 const PRICE_PATTERN = /\d[\d\s.]*\s*(₽|руб|рублей)/i;
 
 function toWire(messages: WireMessage[]): Message[] {
-  return messages.slice(-10).map((m) => ({
-    role: m.role,
-    content:
-      m.role === 'assistant' && m.slugs?.length
-        ? `${m.content}\n[показаны: ${m.slugs.join(', ')}]`
-        : m.content,
-  }));
+  return messages.slice(-10).map((m) => ({ role: m.role, content: m.content }));
 }
 
 export async function extractPrefs(messages: WireMessage[]): Promise<LlmPrefs | null> {
@@ -197,18 +191,17 @@ export async function composeAnswer(
 
     const data = parseJson(raw) as { text?: unknown; picks?: unknown; clarify?: unknown } | null;
 
-    if (!data || typeof data.text !== 'string') {
+    if (!data) {
       const clean = raw
         .replace(/^```(?:json)?/i, '')
         .replace(/```$/, '')
         .trim();
-      if (clean.length > 10 && !PRICE_PATTERN.test(clean)) {
+      const looksLikeJson = clean.startsWith('{') || clean.startsWith('[');
+      if (!looksLikeJson && clean.length > 10 && !PRICE_PATTERN.test(clean)) {
         return { text: clean, slugs: recoverSlugs(clean, candidates), why: {}, clarify: null };
       }
       continue;
     }
-
-    if (PRICE_PATTERN.test(data.text)) continue;
 
     const allowed = new Set(candidates.map((c) => c.slug));
     const why: Record<string, string> = {};
@@ -237,7 +230,18 @@ export async function composeAnswer(
           }
         : null;
 
-    return { text: data.text, slugs, why, clarify };
+    let text = typeof data.text === 'string' ? data.text.trim() : '';
+    if (PRICE_PATTERN.test(text)) continue;
+
+    if (!text) {
+      const names = slugs
+        .map((slug) => candidates.find((c) => c.slug === slug)?.name)
+        .filter((name): name is string => Boolean(name));
+      if (!names.length) continue;
+      text = `Подобрал варианты — ${names.join(', ')}. Посмотрите карточки.`;
+    }
+
+    return { text, slugs, why, clarify };
   }
 
   return null;

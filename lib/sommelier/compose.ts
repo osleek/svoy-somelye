@@ -196,8 +196,13 @@ export async function composeReply(history: WireMessage[], profile?: Profile): P
   );
   const types = ['Красное', 'Белое', 'Розовое'];
 
+  const safeText =
+    answer.text.trim().startsWith('{') || answer.text.trim().startsWith('[')
+      ? ruleReply(prefs).text
+      : answer.text;
+
   return {
-    text: answer.text,
+    text: safeText,
     picks,
     notes: describePrefs(prefs),
     clarify: answer.clarify ?? (picks.length === 0 ? questionFor(0, dishes, types) : null),
