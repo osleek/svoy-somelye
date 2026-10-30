@@ -250,19 +250,3 @@ export async function composeAnswer(
 
   return null;
 }
-
-export async function probe() {
-  const messages: Message[] = [
-    { role: 'system', content: 'Ответь JSON {"text":"ок"}' },
-    { role: 'user', content: 'проверка' },
-  ];
-  const strict = await callOnce(messages, 0.2, 30, true);
-  const plain = await callOnce(messages, 0.2, 30, false);
-  return {
-    base: baseUrl(),
-    model: MODEL.trim(),
-    keyTail: apiKey().slice(-4),
-    strict,
-    plain,
-  };
-}
