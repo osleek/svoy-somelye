@@ -107,6 +107,27 @@ function toConstraints(prefs: PrefsLike): Constraints {
   };
 }
 
+function diversify(list: RankedWine[], limit: number): RankedWine[] {
+  const out: RankedWine[] = [];
+  const usedRegions = new Set<string>();
+
+  for (const wine of list) {
+    if (out.length >= limit) break;
+    const region = wine.region ?? '';
+    if (!region || !usedRegions.has(region)) {
+      out.push(wine);
+      if (region) usedRegions.add(region);
+    }
+  }
+
+  for (const wine of list) {
+    if (out.length >= limit) break;
+    if (!out.includes(wine)) out.push(wine);
+  }
+
+  return out.slice(0, limit);
+}
+
 export function recommend(
   text: string,
   options: {
@@ -126,13 +147,14 @@ export function recommend(
     matchesHard(w, constraints, prefs, options.affinity),
   );
 
-  const ranked: RankedWine[] = candidates
+  const scored: RankedWine[] = candidates
     .map((wine) => {
       const { score, reasons } = scoreWine(wine, constraints, options.taste, options.affinity);
       return { ...wine, score, reasons };
     })
-    .sort((a, b) => b.score - a.score || (b.rating ?? 0) - (a.rating ?? 0))
-    .slice(0, limit);
+    .sort((a, b) => b.score - a.score || (b.rating ?? 0) - (a.rating ?? 0));
+
+  const ranked = diversify(scored, limit);
 
   const notes: string[] = [];
   if (constraints.type) notes.push(`тип: ${constraints.type}`);

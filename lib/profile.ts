@@ -1,4 +1,4 @@
-import type { Affinity } from '@/lib/catalog/search';
+﻿import type { Affinity } from '@/lib/catalog/search';
 import { getCatalog } from '@/lib/catalog/load';
 import { store } from '@/lib/store';
 import type { TasteAxes } from '@/lib/taste';
@@ -34,14 +34,13 @@ export async function buildProfile(userId: string): Promise<Profile> {
   };
 
   const favWines = favorites.map((f) => bySlug.get(f.slug)).filter(Boolean);
-  const historyWines = history.map((h) => bySlug.get(h.slug)).filter(Boolean);
 
   const liked = feedback.filter((f) => f.value > 0).map((f) => bySlug.get(f.slug)).filter(Boolean);
   const disliked = feedback.filter((f) => f.value < 0).map((f) => bySlug.get(f.slug)).filter(Boolean);
 
   return {
-    favoriteTypes: tally([...favWines, ...historyWines].map((w) => w?.type)).slice(0, 2),
-    favoriteRegions: tally([...favWines, ...historyWines].map((w) => w?.region)).slice(0, 2),
+    favoriteTypes: tally(favWines.map((w) => w?.type)).slice(0, 2),
+    favoriteRegions: tally(favWines.map((w) => w?.region)).slice(0, 2),
     favoriteGrapes: tally(favWines.flatMap((w) => w?.grapes ?? [])).slice(0, 3),
     recentQueries: history.slice(0, 5).map((h) => h.query).filter(Boolean),
     dislikedSlugs: [...new Set([...disliked.map((w) => w!.slug), ...feedback.filter((f) => f.value < 0).map((f) => f.slug)])].slice(0, 20),

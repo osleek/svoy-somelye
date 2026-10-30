@@ -113,6 +113,9 @@ async function run() {
 
     if (!data.text || data.text.length < 5) problems.push('пустой ответ');
     if (PRICE.test(data.text ?? '')) problems.push('упомянута цена');
+    if (/^\s*[{[]/.test(data.text ?? '') || /"(picks|slugs|clarify)"\s*:/.test(data.text ?? '')) {
+      problems.push('в ответ попал JSON');
+    }
     if (!picks.length && !data.clarify) problems.push('нет ни вин, ни вопроса');
     if (rule.type && picks.some((p) => p.type !== rule.type)) problems.push('не тот тип вина');
     if (rule.forbid && picks.some((p) => p.type === rule.forbid)) problems.push('запрещённый тип');
