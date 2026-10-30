@@ -1,0 +1,33 @@
+{
+    "name": "svoy-somelye",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "collect": "node collect.mjs"
+    },
+    "dependencies": {
+        "clsx": "^2.1.1",
+        "framer-motion": "^14.7.1",
+        "lucide-react": "^0.468.0",
+        "next": "^15.1.0",
+        "pg": "^8.23.1",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "tailwind-merge": "^2.6.0",
+        "zod": "^3.24.1"
+    },
+    "devDependencies": {
+        "@netlify/plugin-nextjs": "^5.16.5",
+        "@tailwindcss/postcss": "^4.0.0",
+        "@types/node": "^22.10.0",
+        "@types/pg": "^8.23.1",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "tailwindcss": "^4.0.0",
+        "typescript": "^5.7.0"
+    },
+    "description": "Свой Сомелье — подбор российского вина по блюду, вкусу и поводу"
+}

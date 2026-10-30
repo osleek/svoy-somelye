@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: vino-db
+    environment:
+      POSTGRES_USER: vino
+      POSTGRES_PASSWORD: vino
+      POSTGRES_DB: vino
+    ports:
+      - "5433:5432"
+    volumes:
+      - vino-db:/var/lib/postgresql/data
+
+volumes:
+  vino-db:
