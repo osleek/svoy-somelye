@@ -1,4 +1,4 @@
-import type { RankedWine } from '@/lib/catalog/types';
+﻿import type { RankedWine } from '@/lib/catalog/types';
 import type { WireMessage } from './dialog';
 import { EXTRACT_PROMPT, FEW_SHOT, SYSTEM_PROMPT } from './prompts';
 
@@ -49,26 +49,42 @@ function parseJson(raw: string): unknown | null {
   }
 }
 
-async function call(messages: Message[], temperature: number, maxTokens: number): Promise<string | null> {
+async function callOnce(
+  messages: Message[],
+  temperature: number,
+  maxTokens: number,
+  jsonMode: boolean,
+): Promise<{ ok: boolean; status: number; content: string | null }> {
   try {
-    const res = await fetch(`${BASE}/chat/completions`, {
+    const res = await fetch(`${BASE.replace(/\s+/g, "").trim()}/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey()}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey().trim()}` },
       body: JSON.stringify({
-        model: MODEL,
+        model: MODEL.trim(),
         messages,
         temperature,
         max_tokens: maxTokens,
-        response_format: { type: 'json_object' },
+        ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
       }),
       signal: AbortSignal.timeout(9000),
     });
-    if (!res.ok) return null;
+
+    if (!res.ok) return { ok: false, status: res.status, content: null };
+
     const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    return data.choices?.[0]?.message?.content ?? null;
+    return { ok: true, status: res.status, content: data.choices?.[0]?.message?.content ?? null };
   } catch {
-    return null;
+    return { ok: false, status: 0, content: null };
   }
+}
+
+async function call(messages: Message[], temperature: number, maxTokens: number): Promise<string | null> {
+  const strict = await callOnce(messages, temperature, maxTokens, true);
+  if (strict.ok && strict.content) return strict.content;
+  if (strict.ok) return null;
+
+  const plain = await callOnce(messages, temperature, maxTokens, false);
+  return plain.ok ? plain.content : null;
 }
 
 const PRICE_PATTERN = /\d[\d\s.]*\s*(₽|руб|рублей)/i;

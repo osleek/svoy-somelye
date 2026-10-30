@@ -3,43 +3,46 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const maxDuration = 26;
 
-export async function GET() {
-  const base = process.env.LLM_BASE_URL ?? 'https://api.openai.com/v1';
-  const model = process.env.LLM_MODEL ?? 'gpt-4o-mini';
-  const key = process.env.DEEPSEEK_API_KEY ?? process.env.OPENAI_API_KEY ?? process.env.LLM_API_KEY ?? '';
+const base = () => (process.env.LLM_BASE_URL ?? 'https://api.openai.com/v1').replace(/\s+/g, '').trim();
+const model = () => (process.env.LLM_MODEL ?? 'gpt-4o-mini').trim();
+const key = () =>
+  (process.env.DEEPSEEK_API_KEY ?? process.env.OPENAI_API_KEY ?? process.env.LLM_API_KEY ?? '').trim();
 
-  if (!key) {
-    return NextResponse.json({ ok: false, reason: 'ключ не задан', base, model });
-  }
-
+async function ping(withJsonMode: boolean) {
+  const started = Date.now();
   try {
-    const res = await fetch(`${base.replace(/\s+/g, '').trim()}/chat/completions`, {
+    const res = await fetch(`${base()}/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key.trim()}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key()}` },
       body: JSON.stringify({
-        model: model.trim(),
-        messages: [{ role: 'user', content: 'ответь одним словом: ок' }],
-        max_tokens: 10,
+        model: model(),
+        messages: [{ role: 'user', content: 'верни JSON {"ok":true}' }],
+        max_tokens: 40,
+        ...(withJsonMode ? { response_format: { type: 'json_object' } } : {}),
       }),
       signal: AbortSignal.timeout(15000),
     });
-
     const text = await res.text();
-    return NextResponse.json({
+    return {
+      mode: withJsonMode ? 'json' : 'plain',
       ok: res.ok,
       status: res.status,
-      base,
-      model,
-      keyTail: key.slice(-4),
-      body: text.slice(0, 200),
-    });
+      ms: Date.now() - started,
+      body: text.slice(0, 160),
+    };
   } catch (error) {
-    return NextResponse.json({
+    return {
+      mode: withJsonMode ? 'json' : 'plain',
       ok: false,
+      ms: Date.now() - started,
       reason: error instanceof Error ? error.message : 'unknown',
-      base,
-      model,
-      keyTail: key.slice(-4),
-    });
+    };
   }
+}
+
+export async function GET() {
+  if (!key()) return NextResponse.json({ ok: false, reason: 'ключ не задан' });
+
+  const [plain, json] = await Promise.all([ping(false), ping(true)]);
+  return NextResponse.json({ base: base(), model: model(), plain, json });
 }
