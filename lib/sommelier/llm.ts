@@ -26,11 +26,17 @@ const MODEL = process.env.LLM_MODEL ?? 'gpt-4o-mini';
 
 export function llmConfigured(): boolean {
   if (process.env.LLM_DISABLED === '1') return false;
-  return Boolean(process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || process.env.DEEPSEEK_API_KEY);
+  return apiKey().length > 0;
 }
 
 function apiKey(): string {
-  return (process.env.OPENAI_API_KEY ?? process.env.LLM_API_KEY ?? process.env.DEEPSEEK_API_KEY) as string;
+  const candidates = [
+    process.env.DEEPSEEK_API_KEY,
+    process.env.OPENAI_API_KEY,
+    process.env.LLM_API_KEY,
+  ];
+  const found = candidates.find((value) => typeof value === 'string' && value.trim().length > 0);
+  return (found ?? '').trim();
 }
 
 function parseJson(raw: string): unknown | null {
