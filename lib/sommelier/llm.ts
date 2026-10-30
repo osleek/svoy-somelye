@@ -1,4 +1,4 @@
-﻿import type { RankedWine } from '@/lib/catalog/types';
+import type { RankedWine } from '@/lib/catalog/types';
 import type { WireMessage } from './dialog';
 import { EXTRACT_PROMPT, FEW_SHOT, SYSTEM_PROMPT } from './prompts';
 
@@ -117,6 +117,23 @@ export async function extractPrefs(messages: WireMessage[]): Promise<LlmPrefs | 
   };
 }
 
+function recoverSlugs(text: string, candidates: RankedWine[]): string[] {
+  const norm = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[«»"'`]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  const hay = norm(text);
+  const found: string[] = [];
+  for (const wine of candidates) {
+    const name = norm(wine.name);
+    if (name.length > 4 && hay.includes(name) && !found.includes(wine.slug)) found.push(wine.slug);
+    if (found.length === 3) break;
+  }
+  return found;
+}
+
 export async function composeAnswer(
   messages: WireMessage[],
   candidates: RankedWine[],
@@ -154,11 +171,22 @@ export async function composeAnswer(
         ? `${task}${hint}`
         : `${task}\n\nПредыдущий ответ отклонён: неверный формат, выдуманный slug или упоминание цены. Верни строго JSON по схеме.`;
 
-    const raw = await call([...base, { role: 'user', content: nudge }], 0.2, 500);
+    const raw = await call([...base, { role: "user", content: nudge }], 0.2, 500);
     if (!raw) return null;
 
     const data = parseJson(raw) as { text?: unknown; picks?: unknown; clarify?: unknown } | null;
-    if (!data || typeof data.text !== 'string') continue;
+
+    if (!data || typeof data.text !== 'string') {
+      const clean = raw
+        .replace(/^```(?:json)?/i, '')
+        .replace(/```$/, '')
+        .trim();
+      if (clean.length > 10 && !PRICE_PATTERN.test(clean)) {
+        return { text: clean, slugs: recoverSlugs(clean, candidates), why: {}, clarify: null };
+      }
+      continue;
+    }
+
     if (PRICE_PATTERN.test(data.text)) continue;
 
     const allowed = new Set(candidates.map((c) => c.slug));
