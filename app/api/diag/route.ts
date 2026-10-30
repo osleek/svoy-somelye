@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 
 import { composeReply } from '@/lib/sommelier/compose';
 import type { WireMessage } from '@/lib/sommelier/dialog';
-import { llmConfigured } from '@/lib/sommelier/llm';
+import { llmConfigured, probe } from '@/lib/sommelier/llm';
 
 export const runtime = 'nodejs';
 export const maxDuration = 26;
@@ -13,6 +13,7 @@ export async function GET() {
 
   try {
     const reply = await composeReply(history);
+    const live = await probe();
     return NextResponse.json({
       configured: llmConfigured(),
       base: process.env.LLM_BASE_URL ?? null,
@@ -21,6 +22,7 @@ export async function GET() {
       source: reply.source,
       picks: reply.picks.length,
       text: reply.text,
+      probe: live,
     });
   } catch (error) {
     return NextResponse.json({
