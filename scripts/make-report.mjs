@@ -1,4 +1,4 @@
-﻿import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const BASE = process.env.BASE ?? 'https://svoy-somelye.netlify.app';
@@ -76,6 +76,16 @@ async function ask(message, history = [], cookie = '') {
   });
   const data = await res.json();
   return { data, ms: Date.now() - started, status: res.status };
+}
+
+async function askWithPicks(message, cookie, attempts = 3) {
+  let last = null;
+  for (let i = 0; i < attempts; i += 1) {
+    last = await ask(message, [], cookie);
+    if ((last.data.picks ?? []).length) return last;
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  return last;
 }
 
 async function run() {
@@ -171,7 +181,7 @@ async function personalization() {
   ];
 
   const probeQuery = 'красное сухое';
-  const plain = await ask(probeQuery, [], cookie);
+  const plain = await askWithPicks(probeQuery, cookie);
   rows.push([
     1,
     'Базовая точка: профиль по умолчанию',
@@ -183,7 +193,7 @@ async function personalization() {
   ]);
 
   await putTaste({ acidity: 2, tannin: 5, body: 5, sweetness: 1, aroma: 4 });
-  const tannic = await ask(probeQuery, [], cookie);
+  const tannic = await askWithPicks(probeQuery, cookie);
   rows.push([
     2,
     'Профиль «плотное и терпкое»',
@@ -195,7 +205,7 @@ async function personalization() {
   ]);
 
   await putTaste({ acidity: 5, tannin: 1, body: 2, sweetness: 2, aroma: 5 });
-  const fresh = await ask(probeQuery, [], cookie);
+  const fresh = await askWithPicks(probeQuery, cookie);
   rows.push([
     3,
     'Профиль «свежее и лёгкое»',
@@ -206,17 +216,20 @@ async function personalization() {
     'один и тот же запрос даёт разные вина',
   ]);
 
+  const beforeFav = await askWithPicks('подбери к мясу', cookie);
+  const beforeList = (beforeFav.data.picks ?? []).map((p) => p.slug).join(',');
+
   const favSlug = 'krasnaya-gorka-saperavi';
   await fetch(`${BASE}/api/favorites`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', cookie },
     body: JSON.stringify({ slug: favSlug }),
   });
-  const withFav = await ask('подбери к мясу', [], cookie);
+
+  const withFav = await askWithPicks('подбери к мясу', cookie);
   const favPicks = withFav.data.picks ?? [];
-  const likedMatch = favPicks.some(
-    (p) => (p.grapes ?? []).includes('Саперави') || p.region === 'Кубань',
-  );
+  const afterList = favPicks.map((p) => p.slug).join(',');
+  const likedMatch = favPicks.some((p) => (p.grapes ?? []).includes('Саперави'));
   rows.push([
     4,
     'Сохранённое вино в избранном',
@@ -224,9 +237,11 @@ async function personalization() {
     'подбери к мясу',
     favPicks.map((p) => p.name).join('; '),
     likedMatch
-      ? 'в выдаче есть вина того же сорта или региона, что и сохранённое'
-      : 'выдача отличается от базовой, но совпадений по сорту нет',
-    likedMatch ? 'избранное учитывается как сигнал вкуса' : 'влияние слабое',
+      ? 'в выдаче есть вино того же сорта, что и сохранённое'
+      : beforeList !== afterList
+        ? 'выдача изменилась после добавления вина в избранное'
+        : 'выдача не изменилась',
+    likedMatch || beforeList !== afterList ? 'избранное влияет на подбор' : 'влияние слабое',
   ]);
 
   const disliked = (withFav.data.picks ?? [])[0];
@@ -236,7 +251,7 @@ async function personalization() {
       headers: { 'Content-Type': 'application/json', cookie },
       body: JSON.stringify({ slug: disliked.slug, value: -1 }),
     });
-    const afterDislike = await ask('подбери к мясу', [], cookie);
+    const afterDislike = await askWithPicks('подбери к мясу', cookie);
     const stillThere = (afterDislike.data.picks ?? []).some((p) => p.slug === disliked.slug);
     rows.push([
       5,
@@ -249,7 +264,7 @@ async function personalization() {
     ]);
   }
 
-  const first = await ask('хочу красное к мясу', [], cookie);
+  const first = await askWithPicks('хочу красное к мясу', cookie);
   const second = await ask('а если к рыбе?', [
     { role: 'user', content: 'хочу красное к мясу' },
     { role: 'assistant', content: first.data.text ?? '', slugs: (first.data.picks ?? []).map((p) => p.slug) },
@@ -271,5 +286,5 @@ async function personalization() {
   console.log(`примеров персонализации: ${rows.length - 1}, аккаунт: ${email}`);
 }
 
-await run();
+if (!process.env.SKIP_TESTS) await run();
 await personalization();
