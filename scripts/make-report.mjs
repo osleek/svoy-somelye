@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+﻿import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const BASE = process.env.BASE ?? 'https://svoy-somelye.netlify.app';
@@ -68,14 +68,25 @@ function csv(rows) {
 }
 
 async function ask(message, history = [], cookie = '') {
-  const started = Date.now();
-  const res = await fetch(`${BASE}/api/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) },
-    body: JSON.stringify({ message, history }),
-  });
-  const data = await res.json();
-  return { data, ms: Date.now() - started, status: res.status };
+  let lastError = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const started = Date.now();
+    try {
+      const res = await fetch(`${BASE}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) },
+        body: JSON.stringify({ message, history }),
+      });
+      const data = await res.json();
+      return { data, ms: Date.now() - started, status: res.status };
+    } catch (error) {
+      lastError = error;
+      await new Promise((r) => setTimeout(r, 700));
+    }
+  }
+
+  throw lastError ?? new Error('запрос не удался');
 }
 
 async function askWithPicks(message, cookie, attempts = 3) {
@@ -219,7 +230,7 @@ async function personalization() {
     'один и тот же запрос даёт разные вина',
   ]);
 
-  const beforeFav = await askWithPicks('подбери к мясу', cookie);
+  const beforeFav = await askWithPicks('красное сухое к мясу', cookie, 4);
   const beforeList = (beforeFav.data.picks ?? []).map((p) => p.slug).join(',');
 
   const favSlug = 'krasnaya-gorka-saperavi';
@@ -229,7 +240,7 @@ async function personalization() {
     body: JSON.stringify({ slug: favSlug }),
   });
 
-  const withFav = await askWithPicks('подбери к мясу', cookie);
+  const withFav = await askWithPicks('красное сухое к мясу', cookie, 4);
   const favPicks = withFav.data.picks ?? [];
   const afterList = favPicks.map((p) => p.slug).join(',');
   const likedMatch = favPicks.some((p) => (p.grapes ?? []).includes('Саперави'));
@@ -254,7 +265,7 @@ async function personalization() {
       headers: { 'Content-Type': 'application/json', cookie },
       body: JSON.stringify({ slug: disliked.slug, value: -1 }),
     });
-    const afterDislike = await askWithPicks('подбери к мясу', cookie);
+    const afterDislike = await askWithPicks('красное сухое к мясу', cookie, 4);
     const stillThere = (afterDislike.data.picks ?? []).some((p) => p.slug === disliked.slug);
     rows.push([
       5,
@@ -267,7 +278,7 @@ async function personalization() {
     ]);
   }
 
-  const first = await askWithPicks('хочу красное к мясу', cookie);
+  const first = await askWithPicks('красное сухое к мясу', cookie, 4);
   const second = await ask('а если к рыбе?', [
     { role: 'user', content: 'хочу красное к мясу' },
     { role: 'assistant', content: first.data.text ?? '', slugs: (first.data.picks ?? []).map((p) => p.slug) },

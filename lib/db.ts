@@ -14,7 +14,7 @@ export function db(): Pool {
     const isLocal = /(localhost|127\.0\.0\.1)/.test(url);
     pool = new Pool({
       connectionString: url,
-      max: 5,
+      max: 1,
       ssl: isLocal ? undefined : { rejectUnauthorized: false },
     });
   }
